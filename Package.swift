@@ -17,6 +17,10 @@ let package = Package(
             name: "LUT",
             targets: ["LUT"]
         ),
+        .executable(
+            name: "lut-convert",
+            targets: ["LUTConvert"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-protobuf.git", from: "1.27.0"),
@@ -31,6 +35,10 @@ let package = Package(
                 .product(name: "SwiftProtobuf", package: "swift-protobuf"),
             ]
 
+        ),
+        .executableTarget(
+            name: "LUTConvert",
+            dependencies: ["LUT"]
         ),
         .testTarget(
             name: "LUTTests",
