@@ -15,7 +15,7 @@ public nonisolated struct CubeLUTConverter: Hashable, Sendable {
 
 public extension CubeLUTConverter {
     nonisolated func load(_ url: URL, using algorithm: Algorithm = .lzma) throws -> CubeLUT {
-        try load(url.dataRepresentation, using: algorithm)
+        try load(Data(contentsOf: url), using: algorithm)
     }
 
     nonisolated func save(cube: CubeLUT, to url: URL, using algorithm: Algorithm = .lzma) throws {
@@ -71,7 +71,7 @@ private extension CubeLUTConverter {
             }
         }
 
-        return compressedData
+        return decompressedData
     }
 
     nonisolated func compress(_ data: Data, using algorithm: Algorithm = .lzma) throws -> Data {
