@@ -117,8 +117,6 @@ struct LUTConvert {
     }
 
     private static func run(_ options: Options) async throws {
-        let converter = CubeLUTConverter()
-
         if options.inputs.count > 1, let output = options.output {
             try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
         }
@@ -130,10 +128,10 @@ struct LUTConvert {
 
             do {
                 let cube = try await CubeLUT(input)
-                try converter.save(cube: cube, to: output, using: options.algorithm)
+                try BCubeLUTIO.save(cube: cube, to: output, using: options.algorithm)
 
                 if options.verify {
-                    let loaded = try converter.load(output, using: options.algorithm)
+                    let loaded = try BCubeLUTIO.load(output, using: options.algorithm)
                     guard loaded == cube else {
                         throw ConvertError("Verification failed: \(output.path(percentEncoded: false)) does not match source.")
                     }

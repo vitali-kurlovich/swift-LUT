@@ -1,7 +1,4 @@
 //
-//  CubeLUT+PCubeLUT.swift
-//  swift-LUT
-//
 //  Created by Kurlovich Vitali on 11/3/26.
 //
 

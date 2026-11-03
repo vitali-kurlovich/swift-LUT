@@ -1,7 +1,4 @@
 //
-//  CubeLUTConverter.swift
-//  swift-LUT
-//
 //  Created by Kurlovich Vitali on 9/23/26.
 //
 
@@ -9,23 +6,21 @@ import Compression
 import Foundation
 import SwiftProtobuf
 
-public nonisolated struct CubeLUTConverter: Hashable, Sendable {
-    public init() {}
-}
+public nonisolated struct BCubeLUTIO: Hashable, Sendable {}
 
-public extension CubeLUTConverter {
-    nonisolated func load(_ url: URL, using algorithm: Algorithm = .lzma) throws -> CubeLUT {
+public extension BCubeLUTIO {
+    nonisolated static func load(_ url: URL, using algorithm: Algorithm = .lzma) throws -> CubeLUT {
         try load(Data(contentsOf: url), using: algorithm)
     }
 
-    nonisolated func save(cube: CubeLUT, to url: URL, using algorithm: Algorithm = .lzma) throws {
+    nonisolated static func save(cube: CubeLUT, to url: URL, using algorithm: Algorithm = .lzma) throws {
         let data = try save(cube: cube, using: algorithm)
         try data.write(to: url, options: .atomic)
     }
 }
 
-public extension CubeLUTConverter {
-    nonisolated func load(_ data: Data, using algorithm: Algorithm = .lzma) throws -> CubeLUT {
+public extension BCubeLUTIO {
+    nonisolated static func load(_ data: Data, using algorithm: Algorithm = .lzma) throws -> CubeLUT {
         let decompressedData = try decompress(data, using: algorithm)
 
         let pcube = try PCubeLUT(serializedBytes: decompressedData)
@@ -33,7 +28,7 @@ public extension CubeLUTConverter {
         return CubeLUT(pcube)
     }
 
-    nonisolated func save(cube: CubeLUT, using algorithm: Algorithm = .lzma) throws -> Data {
+    nonisolated static func save(cube: CubeLUT, using algorithm: Algorithm = .lzma) throws -> Data {
         let pCube = PCubeLUT(cube)
         let data = try pCube.serializedData()
 
@@ -41,8 +36,8 @@ public extension CubeLUTConverter {
     }
 }
 
-private extension CubeLUTConverter {
-    nonisolated func decompress(_ data: Data, using algorithm: Algorithm = .lzma) throws -> Data {
+private extension BCubeLUTIO {
+    nonisolated static func decompress(_ data: Data, using algorithm: Algorithm = .lzma) throws -> Data {
         let compressedData = data
         var decompressedData = Data()
         let pageSize = 4 * 1024
@@ -74,7 +69,7 @@ private extension CubeLUTConverter {
         return decompressedData
     }
 
-    nonisolated func compress(_ data: Data, using algorithm: Algorithm = .lzma) throws -> Data {
+    nonisolated static func compress(_ data: Data, using algorithm: Algorithm = .lzma) throws -> Data {
         let pageSize = 4 * 1024
         let sourceData = data
         var compressedData = Data()
