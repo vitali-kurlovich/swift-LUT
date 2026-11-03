@@ -1,7 +1,4 @@
 //
-//  LUTConvertTest.swift
-//  swift-LUT
-//
 //  Created by Kurlovich Vitali on 11/3/26.
 //
 
@@ -14,11 +11,9 @@ struct LUTConvertTest {
         let text = LUTContent.cube
         let cube = try CubeLUT(text)
 
-        let converter = CubeLUTConverter()
+        let data = try BCubeLUTIO.save(cube: cube)
 
-        let data = try converter.save(cube: cube)
-
-        let cubeLoaded = try converter.load(data)
+        let cubeLoaded = try BCubeLUTIO.load(data)
 
         #expect(cubeLoaded == cube)
     }
