@@ -7,6 +7,9 @@ import Foundation
 public actor IOCubeLUT {
     private var taskStorage: [URL: Task<CubeLUT, Error>] = [:]
 
+    private static let bcubeExtension = "pcube"
+    private static let cubeExtension = "cube"
+
     private nonisolated(unsafe) let cache = {
         let cache = NSCache<NSURL, CubeLUTBox>()
         cache.totalCostLimit = 64 * 1024 * 1024
@@ -31,14 +34,14 @@ public actor IOCubeLUT {
             return cube
         }
 
-        if url.pathExtension == "bcube" {
+        if url.pathExtension.lowercased() == Self.bcubeExtension {
             let task = Task {
                 try BCubeLUTIO.load(url)
             }
             taskStorage[url] = task
             return try await loadCube(url: url, task: task)
 
-        } else if url.pathExtension == "cube" {
+        } else if url.pathExtension.lowercased() == Self.cubeExtension {
             let task = Task {
                 try await CubeLUT(url)
             }
