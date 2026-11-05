@@ -10,6 +10,8 @@ public actor IOCubeLUT {
     private static let pcubeExtension = "pcube"
     private static let cubeExtension = "cube"
 
+    private let limiter = AsyncSemaphore(limit: 4)
+
     private nonisolated(unsafe) let cache = {
         let cache = NSCache<NSURL, CubeLUTBox>()
         cache.totalCostLimit = 64 * 1024 * 1024
@@ -53,7 +55,9 @@ public actor IOCubeLUT {
     }
 
     private func loadCube(url: URL, task: Task<CubeLUT, Error>) async throws -> CubeLUT {
-        let cube = try await task.value
+        let cube = try await limiter.run {
+            try await task.value
+        }
 
         let box = CubeLUTBox(cube: cube)
         cache.setObject(box, forKey: url as NSURL, cost: cube.data.count)
