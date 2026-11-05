@@ -7,7 +7,7 @@ import Foundation
 public actor IOCubeLUT {
     private var taskStorage: [URL: Task<CubeLUT, Error>] = [:]
 
-    private static let bcubeExtension = "pcube"
+    private static let pcubeExtension = "pcube"
     private static let cubeExtension = "cube"
 
     private nonisolated(unsafe) let cache = {
@@ -34,7 +34,7 @@ public actor IOCubeLUT {
             return cube
         }
 
-        if url.pathExtension.lowercased() == Self.bcubeExtension {
+        if url.pathExtension.lowercased() == Self.pcubeExtension {
             let task = Task {
                 try BCubeLUTIO.load(url)
             }
