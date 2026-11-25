@@ -1,12 +1,9 @@
 //
-//  LUTContent.swift
-//  swift-LUT
-//
 //  Created by Kurlovich Vitali on 9/21/26.
 //
 
-enum LUTContent {
-    static let cube = """
+enum LUTContent3D {
+    static let cubeTextContent = """
     # Converted from luts/instant/olut_I02_rt.lut16 (OpenSourceLuts, https://huggingface.co/Norton0924/OpenSourceLuts)
     # RawTherapee Film Simulation Collection by Pat David, Pavlov Dmitry, Michael Ezra et al., CC BY-SA 4.0, resampled by NicePhoto
     # Category: instant
