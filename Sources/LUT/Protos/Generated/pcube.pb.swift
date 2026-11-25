@@ -110,29 +110,10 @@ nonisolated struct PVector3D: Sendable {
     var unknownFields = SwiftProtobuf.UnknownStorage()
 }
 
-nonisolated struct PCubeLUT: Sendable {
+nonisolated struct PCubeLUTPayload: Sendable {
     // SwiftProtobuf.Message conformance is added in an extension below. See the
     // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
     // methods supported on all messages.
-
-    var meta: PMeta {
-        get { _meta ?? PMeta() }
-        set { _meta = newValue }
-    }
-
-    /// Returns true if `meta` has been explicitly set.
-    var hasMeta: Bool {
-        _meta != nil
-    }
-
-    /// Clears the value of `meta`. Subsequent reads from it will return its default value.
-    mutating func clearMeta() {
-        _meta = nil
-    }
-
-    var kind: PCubeLUTKind = .oneDimensional
-
-    var dimension: UInt32 = 0
 
     var domainMin: PVector3D {
         get { _domainMin ?? PVector3D() }
@@ -164,15 +145,32 @@ nonisolated struct PCubeLUT: Sendable {
         _domainMax = nil
     }
 
-    var data: [Float] = []
+    var dimension: UInt32 = 0
+
+    var kind: PCubeLUTKind = .oneDimensional
+
+    var meta: PMeta {
+        get { _meta ?? PMeta() }
+        set { _meta = newValue }
+    }
+
+    /// Returns true if `meta` has been explicitly set.
+    var hasMeta: Bool {
+        _meta != nil
+    }
+
+    /// Clears the value of `meta`. Subsequent reads from it will return its default value.
+    mutating func clearMeta() {
+        _meta = nil
+    }
 
     var unknownFields = SwiftProtobuf.UnknownStorage()
 
     init() {}
 
-    fileprivate var _meta: PMeta?
     fileprivate var _domainMin: PVector3D?
     fileprivate var _domainMax: PVector3D?
+    fileprivate var _meta: PMeta?
 }
 
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
@@ -278,9 +276,9 @@ nonisolated extension PVector3D: SwiftProtobuf.Message, SwiftProtobuf._MessageIm
     }
 }
 
-nonisolated extension PCubeLUT: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
-    static let protoMessageName: String = "PCubeLUT"
-    static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}meta\0\u{1}kind\0\u{1}dimension\0\u{3}domain_min\0\u{3}domain_max\0\u{1}data\0")
+nonisolated extension PCubeLUTPayload: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+    static let protoMessageName: String = "PCubeLUTPayload"
+    static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}domain_min\0\u{3}domain_max\0\u{1}dimension\0\u{1}kind\0\u{1}meta\0")
 
     mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
         while let fieldNumber = try decoder.nextFieldNumber() {
@@ -288,12 +286,11 @@ nonisolated extension PCubeLUT: SwiftProtobuf.Message, SwiftProtobuf._MessageImp
             // allocates stack space for every case branch when no optimizations are
             // enabled. https://github.com/apple/swift-protobuf/issues/1034
             switch fieldNumber {
-            case 1: try decoder.decodeSingularMessageField(value: &_meta)
-            case 2: try decoder.decodeSingularEnumField(value: &kind)
+            case 1: try decoder.decodeSingularMessageField(value: &_domainMin)
+            case 2: try decoder.decodeSingularMessageField(value: &_domainMax)
             case 3: try decoder.decodeSingularUInt32Field(value: &dimension)
-            case 4: try decoder.decodeSingularMessageField(value: &_domainMin)
-            case 5: try decoder.decodeSingularMessageField(value: &_domainMax)
-            case 6: try decoder.decodeRepeatedFloatField(value: &data)
+            case 4: try decoder.decodeSingularEnumField(value: &kind)
+            case 5: try decoder.decodeSingularMessageField(value: &_meta)
             default: break
             }
         }
@@ -305,49 +302,43 @@ nonisolated extension PCubeLUT: SwiftProtobuf.Message, SwiftProtobuf._MessageImp
         // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
         // https://github.com/apple/swift-protobuf/issues/1182
         try {
-            if let v = self._meta {
-                try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
-            }
-        }()
-        if kind != .oneDimensional {
-            try visitor.visitSingularEnumField(value: kind, fieldNumber: 2)
-        }
-        if dimension != 0 {
-            try visitor.visitSingularUInt32Field(value: dimension, fieldNumber: 3)
-        }
-        try {
             if let v = self._domainMin {
-                try visitor.visitSingularMessageField(value: v, fieldNumber: 4)
+                try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
             }
         }()
         try {
             if let v = self._domainMax {
+                try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+            }
+        }()
+        if dimension != 0 {
+            try visitor.visitSingularUInt32Field(value: dimension, fieldNumber: 3)
+        }
+        if kind != .oneDimensional {
+            try visitor.visitSingularEnumField(value: kind, fieldNumber: 4)
+        }
+        try {
+            if let v = self._meta {
                 try visitor.visitSingularMessageField(value: v, fieldNumber: 5)
             }
         }()
-        if !data.isEmpty {
-            try visitor.visitPackedFloatField(value: data, fieldNumber: 6)
-        }
         try unknownFields.traverse(visitor: &visitor)
     }
 
-    static func == (lhs: PCubeLUT, rhs: PCubeLUT) -> Bool {
-        if lhs._meta != rhs._meta {
-            return false
-        }
-        if lhs.kind != rhs.kind {
-            return false
-        }
-        if lhs.dimension != rhs.dimension {
-            return false
-        }
+    static func == (lhs: PCubeLUTPayload, rhs: PCubeLUTPayload) -> Bool {
         if lhs._domainMin != rhs._domainMin {
             return false
         }
         if lhs._domainMax != rhs._domainMax {
             return false
         }
-        if lhs.data != rhs.data {
+        if lhs.dimension != rhs.dimension {
+            return false
+        }
+        if lhs.kind != rhs.kind {
+            return false
+        }
+        if lhs._meta != rhs._meta {
             return false
         }
         if lhs.unknownFields != rhs.unknownFields {

@@ -16,11 +16,13 @@ message PVector3D {
     float z = 3;
 }
 
-message PCubeLUT {
-  PMeta meta = 1;
-  PCubeLUTKind kind = 2;
-  uint32 dimension = 3;
-  PVector3D domain_min = 4;
-  PVector3D domain_max = 5;
-  repeated float data = 6;
+message PCubeLUTPayload {
+    
+    PVector3D domain_min = 1;
+    PVector3D domain_max = 2;
+    
+    uint32 dimension = 3;
+    PCubeLUTKind kind = 4;
+    
+    PMeta meta = 5;
 }

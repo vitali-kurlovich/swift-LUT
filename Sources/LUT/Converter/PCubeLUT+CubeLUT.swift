@@ -13,10 +13,24 @@ extension PVector3D {
 }
 
 extension PMeta {
-    init(_ meta: Meta) {
+    init(_ meta: CubeLUTMeta) {
         self = .with {
-            $0.title = meta.title ?? ""
-            $0.description_p = meta.description ?? ""
+            $0.title = meta.title
+            $0.description_p = meta.description
+        }
+    }
+}
+
+extension PCubeLUTPayload {
+    init(_ payload: CubeLUTPayload) {
+        self = .with {
+            $0.domainMin = .init(payload.domainMin)
+            $0.domainMax = .init(payload.domainMax)
+
+            $0.kind = PCubeLUTKind(payload.kind)
+            $0.dimension = .init(payload.dimension)
+
+            $0.meta = PMeta(payload.meta)
         }
     }
 }
@@ -28,19 +42,6 @@ extension PCubeLUTKind {
             self = .oneDimensional
         case .threeDimensional:
             self = .threeDimensional
-        }
-    }
-}
-
-extension PCubeLUT {
-    init(_ cube: CubeLUT) {
-        self = .with {
-            $0.kind = PCubeLUTKind(cube.kind)
-            $0.meta = PMeta(cube.meta)
-            $0.dimension = .init(cube.dimension)
-            $0.domainMin = PVector3D(cube.domainMin)
-            $0.domainMax = PVector3D(cube.domainMax)
-            $0.data = cube.values
         }
     }
 }

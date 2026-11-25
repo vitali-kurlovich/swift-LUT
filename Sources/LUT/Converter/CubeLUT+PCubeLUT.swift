@@ -15,18 +15,20 @@ extension CubeLUT.Kind {
     }
 }
 
-extension CubeLUT {
-    init(_ pCube: PCubeLUT) {
-        let meta = pCube.meta
+extension CubeLUTMeta {
+    init(_ meta: PMeta) {
+        self.init(title: meta.title, description: meta.description_p)
+    }
+}
 
+extension CubeLUTPayload {
+    init(_ payload: PCubeLUTPayload) {
         self.init(
-            title: meta.title,
-            description: meta.description_p,
-            kind: .init(pCube.kind),
-            dimension: Int(pCube.dimension),
-            values: pCube.data,
-            domainMin: SIMD3<Float>(x: pCube.domainMin.x, y: pCube.domainMin.y, z: pCube.domainMin.z),
-            domainMax: SIMD3<Float>(x: pCube.domainMax.x, y: pCube.domainMax.y, z: pCube.domainMax.z)
+            meta: CubeLUTMeta(payload.meta),
+            kind: Kind(payload.kind),
+            dimension: .init(payload.dimension),
+            domainMin: SIMD3<Float>(x: payload.domainMin.x, y: payload.domainMin.y, z: payload.domainMin.z),
+            domainMax: SIMD3<Float>(x: payload.domainMax.x, y: payload.domainMax.y, z: payload.domainMax.z)
         )
     }
 }

@@ -128,11 +128,19 @@ struct LUTConvert {
 
             do {
                 let cube = try await CubeLUT(input)
-                try BCubeLUTIO.save(cube: cube, to: output, using: options.algorithm)
+                try await BCubeLUTIO
+                    .save(cube: cube, to: output, using: options.algorithm)
 
                 if options.verify {
                     let loaded = try BCubeLUTIO.load(output, using: options.algorithm)
-                    guard loaded == cube else {
+                    guard loaded.payload == cube.payload else {
+                        throw ConvertError("Verification failed: \(output.path(percentEncoded: false)) does not match source.")
+                    }
+                    
+                    let loadedData =  try await loaded.data()
+                    let cubeData = try await cube.data()
+                    
+                    guard loadedData == cubeData else {
                         throw ConvertError("Verification failed: \(output.path(percentEncoded: false)) does not match source.")
                     }
                 }

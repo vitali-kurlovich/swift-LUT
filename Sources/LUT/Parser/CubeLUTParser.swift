@@ -28,8 +28,7 @@ private struct CubeLUTParser: Sendable {
             .first?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
-        guard line.isEmpty == false else { return }
-        guard line != "\n" else { return }
+        guard line.isEmpty == false, line != "\n" else { return }
 
         let parts = line.split {
             $0 == " " || $0 == "\t" || $0 == ","
@@ -39,8 +38,9 @@ private struct CubeLUTParser: Sendable {
 
         switch keyword.uppercased() {
         case "TITLE":
-            title = parts.dropFirst().joined(separator: " ")
-
+            title = parts.dropFirst()
+                .joined(separator: " ")
+                .trimmingCharacters(in: CharacterSet(charactersIn: "\""))
         case "LUT_1D_SIZE":
             guard parts.count >= 2,
                   let size = Int(parts[1]),

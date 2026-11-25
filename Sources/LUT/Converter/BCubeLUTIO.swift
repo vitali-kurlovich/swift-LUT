@@ -8,31 +8,86 @@ import SwiftProtobuf
 
 public nonisolated struct BCubeLUTIO: Hashable, Sendable {}
 
+private let magic: UInt32 = 0x62756370
+
 public extension BCubeLUTIO {
     nonisolated static func load(_ url: URL, using algorithm: Algorithm = .lzma) throws -> CubeLUT {
         try load(Data(contentsOf: url), using: algorithm)
     }
 
-    nonisolated static func save(cube: CubeLUT, to url: URL, using algorithm: Algorithm = .lzma) throws {
-        let data = try save(cube: cube, using: algorithm)
+    nonisolated static func save(cube: CubeLUT, to url: URL, using algorithm: Algorithm = .lzma) async throws {
+        let data = try await save(cube: cube, using: algorithm)
         try data.write(to: url, options: .atomic)
     }
 }
 
 public extension BCubeLUTIO {
     nonisolated static func load(_ data: Data, using algorithm: Algorithm = .lzma) throws -> CubeLUT {
-        let decompressedData = try decompress(data, using: algorithm)
+        let magicHeader = data.bytes.load(
+            fromByteOffset: 0,
+            as: UInt32.self
+        ).littleEndian
 
-        let pcube = try PCubeLUT(serializedBytes: decompressedData)
+        guard magic == magicHeader else {
+            throw CubeLUTError.invalidFormat
+        }
 
-        return CubeLUT(pcube)
+        let payloadSize = data.bytes.load(
+            fromByteOffset: MemoryLayout<UInt32>.size,
+            as: UInt32.self
+        ).littleEndian
+
+        let headerSize = 2 * MemoryLayout<UInt32>.size
+
+        let payloadRange = headerSize ..< Int(payloadSize) + headerSize
+
+        let payloadData = data[payloadRange]
+
+        let pPayload = try PCubeLUTPayload(serializedBytes: payloadData)
+
+        let pointsRange = payloadRange.upperBound ..< data.endIndex
+
+        let payload = CubeLUTPayload(pPayload)
+
+        let algorithmRaw = algorithm.rawValue.rawValue
+
+        return CubeLUT(payload: payload) {
+            let rawValue = compression_algorithm(algorithmRaw)
+            let algorithm = Algorithm(rawValue: rawValue)!
+
+            let valuesData = data.subdata(in: pointsRange)
+
+            return try decompress(valuesData, using: algorithm)
+        }
     }
 
-    nonisolated static func save(cube: CubeLUT, using algorithm: Algorithm = .lzma) throws -> Data {
-        let pCube = PCubeLUT(cube)
-        let data = try pCube.serializedData()
+    nonisolated static func save(cube: CubeLUT, using algorithm: Algorithm = .lzma) async throws -> Data {
+        var pData = Data()
+        pData.append(magic.littleEndianData)
 
-        return try compress(data, using: algorithm)
+        let pbPayload = PCubeLUTPayload(cube.payload)
+
+        let payloadData = try pbPayload.serializedData()
+        let size = UInt32(payloadData.count)
+        pData.append(size.littleEndianData)
+        pData.append(payloadData)
+
+        let data = try await cube.data()
+        
+        let compressed = try compress(data, using: algorithm)
+
+        pData.append(compressed)
+
+        return pData
+    }
+}
+
+extension FixedWidthInteger {
+   
+
+    var littleEndianData: Data {
+        var value = littleEndian
+        return Data(bytes: &value, count: MemoryLayout<Self>.size)
     }
 }
 
@@ -52,7 +107,7 @@ private extension BCubeLUTIO {
             }
         }
 
-        var index = 0
+        var index = compressedData.startIndex
         let bufferSize = compressedData.count
 
         while true {
@@ -60,7 +115,9 @@ private extension BCubeLUTIO {
 
             let subdata = compressedData.subdata(in: index ..< index + rangeLength)
             index += rangeLength
+
             try outputFilter.write(subdata)
+
             if rangeLength == 0 {
                 break
             }

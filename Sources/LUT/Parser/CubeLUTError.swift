@@ -4,7 +4,7 @@
 
 import Foundation
 
-public enum CubeLUTError: LocalizedError {
+public nonisolated enum CubeLUTError: Error, LocalizedError, Sendable {
     case IOError(Error)
     case invalidFormat
     case missingSize

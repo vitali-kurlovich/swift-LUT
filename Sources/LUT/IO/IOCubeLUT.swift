@@ -31,7 +31,7 @@ public actor IOCubeLUT {
             let cube = try await task.value
 
             let box = CubeLUTBox(cube: cube)
-            cache.setObject(box, forKey: url as NSURL, cost: cube.data.count)
+            cache.setObject(box, forKey: url as NSURL)
 
             return cube
         }
@@ -60,7 +60,7 @@ public actor IOCubeLUT {
         }
 
         let box = CubeLUTBox(cube: cube)
-        cache.setObject(box, forKey: url as NSURL, cost: cube.data.count)
+        cache.setObject(box, forKey: url as NSURL)
 
         taskStorage.removeValue(forKey: url)
 
