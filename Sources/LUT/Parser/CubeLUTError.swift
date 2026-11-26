@@ -13,6 +13,7 @@ public nonisolated enum CubeLUTError: Error, LocalizedError, Sendable {
     case invalidDomain
     case invalidRow(line: Int)
     case incorrectRowCount(expected: Int, actual: Int)
+    case unknownFileFormat(URL)
 
     public var errorDescription: String? {
         switch self {
@@ -32,6 +33,8 @@ public nonisolated enum CubeLUTError: Error, LocalizedError, Sendable {
             return "Invalid RGB data at line \(line)."
         case let .incorrectRowCount(expected, actual):
             return "Expected \(expected) rows, got \(actual)."
+        case let .unknownFileFormat(url):
+            return "Unknown file format \(url.lastPathComponent)."
         }
     }
 }

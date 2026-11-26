@@ -2,7 +2,6 @@
 //  Created by Kurlovich Vitali on 9/18/26.
 //
 
-import CoreImage
 import Foundation
 
 public nonisolated struct CubeLUTMeta: Hashable, Sendable {
@@ -15,7 +14,7 @@ public nonisolated struct CubeLUTMeta: Hashable, Sendable {
     }
 }
 
-public nonisolated enum CubeLUTKind: Hashable, Sendable {
+public nonisolated enum CubeLUTKind: Int, Hashable, Sendable, Codable {
     /// Per-channel curves (`LUT_1D_SIZE`); `data` holds `dimension` float RGB triplets.
     case oneDimensional
     /// Color cube (`LUT_3D_SIZE`); `data` holds `dimension³` float RGBA values, red varying fastest.
@@ -79,34 +78,8 @@ public nonisolated extension CubeLUT {
 public nonisolated struct CubeLUT: Hashable, Sendable {
     public typealias Kind = CubeLUTKind
 
-    // public let data: Data
-    //
-    //  public let values: [Float]
-
     public let payload: CubeLUTPayload
     private let dataTask: Task<Data, any Error> // data: Data
-
-    public init(
-        title: String = "",
-        description: String = "",
-        kind: Kind,
-        dimension: Int,
-        values: [Float],
-        domainMin: SIMD3<Float>,
-        domainMax: SIMD3<Float>
-    ) {
-        let meta = CubeLUTMeta(title: title, description: description)
-
-        let payload = CubeLUTPayload(meta: meta, kind: kind, dimension: dimension, domainMin: domainMin, domainMax: domainMax)
-
-        let data = values.withUnsafeBytes {
-            Data($0)
-        }
-
-        self.init(payload: payload) {
-            data
-        }
-    }
 
     public init(
         payload: CubeLUTPayload,
@@ -136,8 +109,62 @@ public extension CubeLUT {
         }
         try self.init(text)
     }
+}
 
-    init(_ url: URL) async throws(CubeLUTError) {
-        self = try await parseCubeLUT(url.lines)
+public extension CubeLUT {
+    init(_ url: URL) throws(CubeLUTError) {
+        if url.pathExtension.lowercased() == "cube" {
+            try self.init(cubeURL: url)
+        } else if url.pathExtension.lowercased() == "pcube" {
+            try self.init(pCubeURL: url)
+        } else {
+            throw CubeLUTError.unknownFileFormat(url)
+        }
+    }
+}
+
+private extension CubeLUT {
+    init(pCubeURL url: URL) throws(CubeLUTError) {
+        do {
+            let data = try Data(contentsOf: url)
+            try self.init(bCubeData: data)
+        } catch let error as CubeLUTError {
+            throw error
+        } catch {
+            throw CubeLUTError.IOError(error)
+        }
+    }
+
+    init(cubeURL url: URL) throws(CubeLUTError) {
+        do {
+            let lineReader = FileLineReader(url: url, chunkSize: 256)
+
+            var parser = CubeLUTParser()
+
+            try lineReader.readLines { line in
+                try parser.nextLine(line)
+                return parser.isPayloadReady == false
+            }
+
+            let payload = try parser.payload()
+
+            self.init(payload: payload, data: {
+                let lineReader = FileLineReader(url: url, chunkSize: 1 << 16)
+
+                var parser = CubeLUTParser()
+
+                try lineReader.readLines { line in
+                    try parser.nextLine(line)
+                    return true
+                }
+
+                return try parser.valuesData()
+            })
+
+        } catch let error as CubeLUTError {
+            throw error
+        } catch {
+            throw CubeLUTError.invalidFormat
+        }
     }
 }

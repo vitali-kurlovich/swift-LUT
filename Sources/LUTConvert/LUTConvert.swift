@@ -20,7 +20,6 @@ ARGUMENTS:
 OPTIONS:
   -o, --output <path>     Output file (single input) or directory (any number of inputs).
                           Defaults to the input path with a .pcube extension.
-  -a, --algorithm <name>  Compression algorithm: lzma (default), lzfse, zlib, lz4.
   --verify                Load each written file back and check it matches the source.
   -h, --help              Show this help.
 """
@@ -36,7 +35,6 @@ private struct ConvertError: LocalizedError {
 private struct Options {
     var inputs: [URL] = []
     var output: URL?
-    var algorithm: Algorithm = .lzma
     var verify = false
 
     init(_ arguments: [String]) throws {
@@ -53,12 +51,6 @@ private struct Options {
                     throw ConvertError("Missing value for \(argument).")
                 }
                 output = URL(filePath: path)
-
-            case "-a", "--algorithm":
-                guard let name = iterator.next() else {
-                    throw ConvertError("Missing value for \(argument).")
-                }
-                algorithm = try Self.algorithm(named: name)
 
             case "--verify":
                 verify = true
@@ -127,19 +119,19 @@ struct LUTConvert {
             let output = options.outputURL(for: input)
 
             do {
-                let cube = try await CubeLUT(input)
+                let cube = try CubeLUT(input)
                 try await BCubeLUTIO
-                    .save(cube: cube, to: output, using: options.algorithm)
+                    .save(cube: cube, to: output)
 
                 if options.verify {
-                    let loaded = try BCubeLUTIO.load(output, using: options.algorithm)
+                    let loaded = try BCubeLUTIO.load(output)
                     guard loaded.payload == cube.payload else {
                         throw ConvertError("Verification failed: \(output.path(percentEncoded: false)) does not match source.")
                     }
-                    
-                    let loadedData =  try await loaded.data()
+
+                    let loadedData = try await loaded.data()
                     let cubeData = try await cube.data()
-                    
+
                     guard loadedData == cubeData else {
                         throw ConvertError("Verification failed: \(output.path(percentEncoded: false)) does not match source.")
                     }

@@ -2,10 +2,9 @@
 //  Created by Kurlovich Vitali on 9/22/26.
 //
 
-import CryptoKit
 import Foundation
 
-private struct CubeLUTParser: Sendable {
+struct CubeLUTParser: Sendable {
     private var title: String?
 
     private var size1D: Int?
@@ -17,6 +16,8 @@ private struct CubeLUTParser: Sendable {
     private var lineNumber = 0
 
     private var isFinalized: Bool = false
+
+    private(set) var isPayloadReady: Bool = false
 
     mutating func nextLine<S: StringProtocol>(_ rawLine: S) throws(CubeLUTError) {
         assert(isFinalized == false)
@@ -41,6 +42,7 @@ private struct CubeLUTParser: Sendable {
             title = parts.dropFirst()
                 .joined(separator: " ")
                 .trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+
         case "LUT_1D_SIZE":
             guard parts.count >= 2,
                   let size = Int(parts[1]),
@@ -105,6 +107,24 @@ private struct CubeLUTParser: Sendable {
             }
 
             rgbValues.append(SIMD3(r, g, b))
+            isPayloadReady = true
+        }
+    }
+
+    func valuesData() throws(CubeLUTError) -> Data {
+        guard all(domainMin .< domainMax) else {
+            throw CubeLUTError.invalidDomain
+        }
+
+        switch (size1D, size3D) {
+        case let (size?, nil):
+            return try valuesData1D(size: size)
+        case let (nil, size?):
+            return try valuesData3D(size: size)
+        case (.some, .some):
+            throw CubeLUTError.mixed1D3DLUT
+        case (nil, nil):
+            throw CubeLUTError.missingSize
         }
     }
 
@@ -127,19 +147,53 @@ private struct CubeLUTParser: Sendable {
         }
     }
 
-    private func finalize1D(size: Int) throws(CubeLUTError) -> CubeLUT {
+    func payload() throws(CubeLUTError) -> CubeLUTPayload {
+        guard all(domainMin .< domainMax) else {
+            throw CubeLUTError.invalidDomain
+        }
+
+        switch (size1D, size3D) {
+        case let (size?, nil):
+            return payload1D(size: size)
+        case let (nil, size?):
+            return payload3D(size: size)
+        case (.some, .some):
+            throw CubeLUTError.mixed1D3DLUT
+        case (nil, nil):
+            throw CubeLUTError.missingSize
+        }
+    }
+
+    private func meta() -> CubeLUTMeta {
+        CubeLUTMeta(title: title ?? "", description: "")
+    }
+
+    private func payload1D(size dimension: Int) -> CubeLUTPayload {
+        CubeLUTPayload(
+            meta: meta(),
+            kind: .oneDimensional,
+            dimension: dimension,
+            domainMin: domainMin,
+            domainMax: domainMax
+        )
+    }
+
+    private func payload3D(size dimension: Int) -> CubeLUTPayload {
+        return CubeLUTPayload(
+            meta: meta(),
+            kind: .threeDimensional,
+            dimension: dimension,
+            domainMin: domainMin,
+            domainMax: domainMax
+        )
+    }
+
+    private func valuesData1D(size: Int) throws(CubeLUTError) -> Data {
         guard rgbValues.count == size else {
             throw CubeLUTError.incorrectRowCount(
                 expected: size,
                 actual: rgbValues.count
             )
-        }
-
-        // CIColorCurves takes a single domain for all three curves.
-        guard domainMin.x == domainMin.y, domainMin.x == domainMin.z,
-              domainMax.x == domainMax.y, domainMax.x == domainMax.z
-        else {
-            throw CubeLUTError.invalidDomain
         }
 
         var rgbFloats = [Float]()
@@ -151,17 +205,35 @@ private struct CubeLUTParser: Sendable {
             rgbFloats.append(rgb.z)
         }
 
-        return CubeLUT(
-            title: title ?? "",
+        return rgbFloats.withUnsafeBytes {
+            Data($0)
+        }
+    }
+
+    private func finalize1D(size: Int) throws(CubeLUTError) -> CubeLUT {
+        let data = try valuesData1D(size: size)
+
+        // CIColorCurves takes a single domain for all three curves.
+        guard domainMin.x == domainMin.y, domainMin.x == domainMin.z,
+              domainMax.x == domainMax.y, domainMax.x == domainMax.z
+        else {
+            throw CubeLUTError.invalidDomain
+        }
+
+        let payload = CubeLUTPayload(
+            meta: meta(),
             kind: .oneDimensional,
             dimension: size,
-            values: rgbFloats,
             domainMin: domainMin,
             domainMax: domainMax
         )
+
+        return CubeLUT(payload: payload) {
+            data
+        }
     }
 
-    private func finalize3D(size dimension: Int) throws(CubeLUTError) -> CubeLUT {
+    private func valuesData3D(size dimension: Int) throws(CubeLUTError) -> Data {
         let expectedCount = dimension * dimension * dimension
 
         guard rgbValues.count == expectedCount else {
@@ -170,7 +242,6 @@ private struct CubeLUTParser: Sendable {
                 actual: rgbValues.count
             )
         }
-
         var rgbaValues = [Float]()
         rgbaValues.reserveCapacity(expectedCount * 4)
 
@@ -181,15 +252,19 @@ private struct CubeLUTParser: Sendable {
             rgbaValues.append(1.0)
         }
 
-        return CubeLUT(
-            title: title ?? "",
-            description: "",
-            kind: .threeDimensional,
-            dimension: dimension,
-            values: rgbaValues,
-            domainMin: domainMin,
-            domainMax: domainMax
-        )
+        return rgbaValues.withUnsafeBytes {
+            Data($0)
+        }
+    }
+
+    private func finalize3D(size dimension: Int) throws(CubeLUTError) -> CubeLUT {
+        let data = try valuesData3D(size: dimension)
+
+        let payload = payload3D(size: dimension)
+
+        return CubeLUT(payload: payload) {
+            data
+        }
     }
 }
 
